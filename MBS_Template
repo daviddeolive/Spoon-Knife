@@ -1,0 +1,179 @@
+USE [REFERENCE]
+GO
+
+/****** Object:  View [ext].[vw_PNIC_REF_MBS_Template]    Script Date: 20/12/2018 9:18:37 AM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+
+CREATE VIEW [ext].[vw_PNIC_REF_MBS_Template]
+AS
+
+
+SELECT
+-- Top 500
+CAST(X.[Flag] as nvarchar(10)) AS [Flag]
+,CAST('MPL' as nvarchar(5)) AS SCHMCode 
+,CAST('MBS' as nvarchar(12)) as [Source]
+,CAST(i.PublicationCode_Code as nvarchar(4)) as PubNum
+,CAST(x.Code as nvarchar(6)) as TrfCode
+,CAST(UPPER(LEFT([dbo].[CleanseSPChars](X.[Description]),255)) as nvarchar(255)) AS Descr
+,CAST(UPPER(LEFT([dbo].[CleanseSPChars](X.[Description]),50)) as nvarchar(50))  AS ShrtDescr
+,CAST(UPPER(LEFT([dbo].[CleanseSPChars](X.[Description]),4000)) as nvarchar(4000))  AS FurtherDescr
+,CAST('1' as nvarchar(5)) AS TrfCatCode
+,CAST(I.[TrfType_Code] as nvarchar(1)) AS TrfTypeAltId
+,CAST(I.SubClassCode_Code as nvarchar(2)) AS TrfTypeSubClassCode
+,CAST('1' as nvarchar(2)) AS NumOccr
+,CAST(IIF(C.AuditRequired_Code is NULL,'0','1') as nvarchar(1)) AS AuditReq
+---Profile
+
+,case when L.pracType = 23 then CAST(CONVERT(date,X.[ItemStartDate],103) as nvarchar(10)) else '' end  AS Prof_EffDate --Mandatory
+,case when L.pracType = 23 then CAST(CONVERT(date,X.[ItemEndDate],103) as nvarchar(10)) else '' end  AS Prof_EffTo
+, case when L.pracType = 23 then CAST(RTRIM(P.PatientClassCode_Code) as nvarchar(5)) else '' end  AS Prof_ServiceClassAltId --Mandatory
+,case when L.pracType = 23 then CAST(RTRIM(P.PatientClassCode_Code)+'1' as nvarchar(10)) else '' end  AS Prof_ServiceSubClassAltId --Mandatory
+,case when L.pracType = 23 then CAST(X.Category as nvarchar(3)) else '' end   AS TrfCatGrpCode--Mandatory
+,case when L.pracType = 23 then CAST(X.[Group] as nvarchar(3)) else '' end AS TrfGrpCode--Mandatory
+,case when L.pracType = 23 then CAST(X.SubGroup as nvarchar(3)) else '' end AS TrfSubGrpCode
+,case when L.pracType = 23 then CAST(X.SubHeading as nvarchar(3))else '' end  AS TrfSubHeadCode
+
+--Profile Displine
+,case when L.pracType = 23 then CAST(L.SpecialitySourceCode_Code as nvarchar(5)) else '' end AS AllocInstCode
+,case when L.pracType = 23 then CAST(L.SpecialityCode as nvarchar(4)) else '' end AS DispCode
+,case when L.pracType = 23 then CAST(L.SubSpecialityCode as nvarchar(4)) else '' end AS SubDispCode
+,case when L.pracType = 23 then CAST(REPLACE(L.SubSubSpecialityCode,'NA','') as nvarchar(4)) else '' end AS SubCatDispCatAltId
+,case when L.pracType = 23 then CAST(RTRIM(C.RefCode_Code) as nvarchar(2)) else '' end AS RefAltId
+--,CAST('1' as nvarchar(2)) AS UnitCode
+,case when L.pracType = 23 then CAST(IIF(L.[TheatreBandCode_Code]='','',i.PublicationCode_Code+L.[TheatreBandCode_Code]) as nvarchar(15)) else '' end AS UnitCode
+,case when L.pracType = 23 then CAST(C.BodySite_Code as nvarchar(6)) else '' end AS BodySiteAltId
+,case when L.pracType = 23 then CAST(X.FeeType as nvarchar(1)) else '' end AS FeeType --Mandatory
+--,CAST(X.DerivedFee as nvarchar(255)) AS FeeTypeDescr
+,case when L.pracType = 23 then CAST(IIF(X.FeeType='D',X.DerivedFee,Null) as nvarchar(1)) else '' end AS FeeTypeDescr
+,case when L.pracType = 23 then CAST(X.ItemType as nvarchar(1)) else '' end AS ItemType --Mandatory
+,case when L.pracType = 23 then CAST(IIF(X.Anaes='Y',1,ISNULL(NULLIF(X.Anaes,''),'0')) as nvarchar(1)) else  cast ('' as nvarchar(1)) end AS Anaes --Mandatory
+
+,IIF( L.pracType = 23 
+			,CASE 
+			  WHEN X.Category = 3 AND X.[Group]='T8' AND RTRIM(X.FeeType) = 'N' THEN 
+				CAST(CONVERT(INT,X.ScheduleFee * 100) as nvarchar(10))
+			  WHEN RTRIM(X.FeeType) = 'D' THEN 
+ 				CAST('1' as nvarchar(10))
+			ELSE 
+				CAST('1' as nvarchar(10))
+		END
+		,'') 
+		AS IndexVal --Mandatory
+,IIF( L.pracType = 23
+			,CASE 
+			  WHEN X.Category =3 AND X.[Group] = 'T10' AND X.SubGroup IN ('1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','20','26') THEN
+					CAST('40' as nvarchar(10))
+			  WHEN x.Code= '22060' AND X.Category =3 AND X.[Group] = 'T10' AND X.SubGroup ='19' THEN
+					CAST('40' as nvarchar(10))
+			  WHEN  X.Category =3 AND X.[Group] = 'T10' AND X.SubGroup = '21' THEN
+					CAST('50' as nvarchar(10))
+			  WHEN  X.Category =3 AND X.[Group] = 'T10' AND X.SubGroup = '22' THEN
+					CAST('60' as nvarchar(10))
+			  WHEN  x.Code= '25015' AND X.Category =3 AND X.[Group] = 'T10' AND X.SubGroup = '23' THEN
+					CAST('70' as nvarchar(10))
+			  WHEN  x.Code= '25020' AND X.Category =3 AND X.[Group] = 'T10' AND X.SubGroup = '23' THEN
+					CAST('80' as nvarchar(10))
+			  WHEN  x.Code= '25060' AND X.Category =3 AND X.[Group] = 'T10' AND X.SubGroup = '19' THEN
+					CAST('90' as nvarchar(10))
+			  WHEN  X.Category =3 AND X.[Group] = 'T10' AND X.SubGroup IN ('24','25') THEN
+					CAST('100' as nvarchar(10))
+			ELSE 
+				CAST('' as nvarchar(10))
+			END,'')
+	AS IndexSeq
+,CAST(L.PracType as nvarchar(4)) AS TrfMap_PracType
+,CAST(CONVERT(date,X.ItemStartDate,103) as nvarchar(10)) AS TrfMap_EffDate
+,CAST(CONVERT(date,X.ItemEndDate,103) as nvarchar(10)) AS TrfMap_EffTo
+,CAST('PROD' as nvarchar(10)) AS TrfMap_CC_ProdCode
+,CAST(IIF(L.SpecialitySourceCode_Code =2,'3','1') as nvarchar(1)) AS TrfMap_CC_ServGrpCode
+,CAST(L.CommonCoverageCode_Code as nvarchar(10)) AS TrfMap_CC_SubCatAltId
+,CAST(CONVERT(date,X.[MBSExtractDate],103) as nvarchar(10)) AS TrfMap_CC_EffDate
+---TrfMapUnit
+,CAST(IIF(L.[TheatreBandCode_Code]='','',i.PublicationCode_Code+L.[TheatreBandCode_Code]) as nvarchar(15)) AS TrfMapUnit_UnitAltId---this shoud not be blank/null
+,CAST(L.SchedClass as nvarchar(5)) AS TrfMapUnit_PayTypeAltId--this
+,CAST(RTRIM(L.PatientClassCode_Code) as nvarchar(5)) AS TrfMapUnit_ServiceClassAltId--this
+,CAST(IIF(L.PatientClassCode_Code='','',RTRIM(L.PatientClassCode_Code) +'1') as nvarchar(10)) AS TrfMapUnit_ServiceSubClassAltId--this
+,CAST(IIF(L.SchedClass= '',NULL,IIF(X.FeeStartDate is NULL,CONVERT(date,X.[ItemStartDate],103),CONVERT(date,X.FeeStartDate,103))) as nvarchar(10)) AS TrfMapUnit_EffDate
+,CAST('' as nvarchar(1)) AS TrfMapUnit_EffTo
+--TrfMapPrice
+,CAST(IIF(L.SchedClass= '',NULL,IIF(X.FeeStartDate is NULL,CONVERT(date,X.[ItemStartDate],103),CONVERT(date,X.FeeStartDate,103))) as nvarchar(10)) AS TrfMapPrice_EffDate
+,CAST('' as nvarchar(1)) AS TrfMapPrice_EffTo
+,CAST(L.SchedAmt as nvarchar(10)) AS TrfMapPrice_NumUnits--this
+--TrfMapPerc
+,CAST(L.GSchedClass as nvarchar(5)) AS TrfMapPerc_PayTypeAltId--this
+,CAST(IIF(L.SchedClass= '',NULL,IIF(X.FeeStartDate is NULL,CONVERT(date,X.[ItemStartDate],103),CONVERT(date,X.FeeStartDate,103))) as nvarchar(10)) AS TrfMapPerc_EffDate
+,CAST('' as nvarchar(1)) AS TrfMapPerc_EffTo
+,CAST(L.Perc as nvarchar(10)) AS TrfMapPerc_TrfPerc
+--TrfMapCertif
+,CAST(IIF(P.[CertificateType_Code] in ('B','C'),CAST(CONVERT(date,X.ItemStartDate,103) AS Nvarchar),NULL) as nvarchar(10)) AS TrfMapCertif_EffDate
+,CAST('' as nvarchar(1)) AS TrfMapCertif_EffTo
+--Send on the certificate type code as configured in proclass
+
+,CASE 
+  WHEN P.[CertificateType_Code] = 'A' THEN CAST('' as nvarchar(1)) 
+ ELSE CAST(P.[CertificateType_Code] as NVARCHAR(1))
+  END TrfMapCertif_CertfifId
+
+,CASE 
+  WHEN P.[CertificateType_Code] = 'C' THEN CAST('0' as nvarchar(1)) 
+  WHEN P.[CertificateType_Code] = 'B' THEN CAST('1' as nvarchar(1))
+  ELSE CAST('' as nvarchar(1))
+ END TrfMapCertif_NumDays
+ ---TrfStatDisorderServCode
+,CAST(StatDisorderCode as nvarchar(10)) AS StatDisorderServCode
+,CAST(CONVERT(date,X.[MBSExtractDate],103) as nvarchar(10)) AS StatDisorderServ_EffDate
+,CAST('' as nvarchar(1)) AS StatDisorderServ_EffTo
+---TrfSubClass
+,CAST('' as nvarchar(10)) AS   TrfSubClass_TrfClassAltId
+,CAST('' as nvarchar(10)) AS   TrfSubClass_TrfSubClassAltId
+---DRGMast
+,CAST(x.Code as nvarchar(6)) AS DRGMast_DRGCode
+,CAST(UPPER(LEFT([dbo].[CleanseSPChars](X.[Description]),255)) as nvarchar(255)) AS  DRGMast_Descr
+,CAST(UPPER(LEFT([dbo].[CleanseSPChars](X.[Description]),50)) as nvarchar(50)) AS  DRGMast_ShrtDescr
+,CAST([SameDayBandCode_Code] as nvarchar(1)) AS   DRGMast_DRGPrtnAltId
+,CAST(I.SubClassCode_Code as nvarchar(2)) AS DRGMast_TrfTypeSubClassCode
+,CAST(IIF(C.AuditRequired_Code is NULL,'0','1') as nvarchar(1)) AS DRGMast_AuditReq
+--DRGXRef
+,CAST(i.PublicationCode_Code as nvarchar(4)) as DRGXRef_PubNum
+,CAST(CONVERT(date,X.ItemStartDate,103) as nvarchar(10)) AS DRGXRef_EffDate
+,CAST('' as nvarchar(1)) AS   DRGXRef_EffTo
+--DRGMast-StatDisorderServCode
+,CAST(StatDisorderCode as nvarchar(10)) AS DRGMast_StatDisorderServCode
+,CAST(CONVERT(date,X.[MBSExtractDate],103) as nvarchar(10)) AS DRGMast_StatDisorderServ_EffDate
+,CAST('' as nvarchar(1)) AS   DRGMast_StatDisorderServ_EffTo
+--TrfUnitPrice
+,CAST('0' as nvarchar(1)) AS  TrfUnitPrice_UnitAltId -- TrfUnitPrice_TrfCode
+,CAST(L.PayType as nvarchar(5)) AS TrfUnitPrice_PayTypeAltId
+--,CAST(IIF(X.FeeStartDate is NULL,CONVERT(date,X.[ItemStartDate],103),CONVERT(date,X.FeeStartDate,103)) as nvarchar(10)) AS TrfUnitPrice_EffDate
+,CAST(CONVERT(date,X.[MBSExtractDate],103) as nvarchar(10)) AS TrfUnitPrice_EffDate
+,CAST('' as nvarchar(1)) AS   TrfUnitPrice_EffTo
+,CAST('1' as nvarchar(1)) AS   TrfUnitPrice_TrfDay
+,CAST('1.00' as nvarchar(10)) AS  TrfUnitPrice_Value
+,CAST(CONVERT(date,X.[MBSExtractDate],103) as nvarchar(10)) AS MBSExtractDate
+FROM [MDS].[mdm].[vw_PNIC_REF_MBS_XML] X
+INNER JOIN [MDS].[mdm].[vw_PNIC_REF_MBS_EXtractDate] E ON X.[MBSExtractDate] = E.[ExtractDate]
+INNER JOIN [MDS].[mdm].[vw_PNIC_REF_MBS_Ref_Item] I ON X.CODE = I.CODE
+INNER JOIN [MDS].[mdm].[vw_PNIC_REF_MBS_Clinical] C ON  X.code = C.code  
+INNER JOIN [MDS].[mdm].[vw_PNIC_REF_MBS_ProClass] P ON  X.code = P.code  
+INNER JOIN [ext].[vw_MBS_CommonCoverage] L ON C.Code = L.ItemNumber
+INNER JOIN [MDS].[mdm].[vw_PNIC_REF_MBS_SubSpeciality] SS ON C.[SubSpecialityCode_Code] = SS.Code 
+INNER JOIN [ext].[vw_MBS_StatDisorder] O ON X.Code = O.ItemNumber
+LEFT JOIN  [MDS].[mdm].[vw_PNIC_REF_MBS_BodySite] B ON C.BodySite_Code =B.Code
+WHERE UPPER(X.Flag) in ('NEW', 'CHANGED', 'CLOSED')
+
+--and x.Anaes = 'Y'
+
+
+
+GO
+
+
