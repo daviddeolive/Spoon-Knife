@@ -1,7 +1,7 @@
 USE [REFERENCE]
 GO
 
-/****** Object:  View [ext].[vw_PNIC_REF_MBS_Template]    Script Date: 20/12/2018 9:18:37 AM ******/
+/****** Object:  View [ext].[vw_PNIC_REF_MBS_Template]    Script Date: 20/12/2018 1:33:02 PM ******/
 SET ANSI_NULLS ON
 GO
 
